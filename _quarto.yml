@@ -1,12 +1,13 @@
 project:
-  title: "CSU ESS330 Daily Exercise 21"
   output-dir: docs
   type: website
+title: "CSU ESS330 Daily Exercise 21"
 author: "Olivia Gilpin"
+date: "04-18-2025"
 format:
   html:
     output-file: index.html
     self-contained: true
     toc: true
     toc-depth: 4
-    toc-location: left 
+    toc-location: left

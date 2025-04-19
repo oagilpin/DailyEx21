@@ -1,0 +1,84 @@
+---
+project:
+  title: "CSU ESS330 Daily Exercise 21"
+  output-dir: docs
+  type: website
+author: "Olivia Gilpin"
+format:
+  html:
+    output-file: index.html
+    self-contained: true
+    toc: true
+    toc-depth: 4
+    toc-location: left 
+---
+
+# USGS Data 
+```{r}
+library(dataRetrieval)
+library(dplyr)  
+library(tsibble) 
+library(feasts)   
+library(tidyverse)
+
+poudre_flow <- readNWISdv(siteNumber = "06752260",    
+                          parameterCd = "00060",      
+                          startDate = "2013-01-01",   
+                          endDate = "2023-12-31") |>  
+  renameNWISColumns() |>                              
+  mutate(Date = yearmonth(Date)) |>                   
+  group_by(Date) |>                                   
+  summarise(Flow = mean(Flow))                        
+```
+```{r}
+head(poudre_flow)
+```
+## 1. Convert to tsibble
+```{r}
+poudre_tsbl <- poudre_flow |>
+  as_tsibble(index = Date)
+
+poudre_tsbl
+```
+## 2. Plotting the time series
+```{r}
+library(ggplot2)
+library(plotly)
+
+poudre_plot <- poudre_tsbl |>
+  ggplot(aes(x = Date, y = Flow)) +
+  geom_line(color = "purple", linewidth = 0.8) +
+  labs(title = "Monthly Average Streamflow in Cache la Poudre River (2013-2023)",
+       x = "Date",
+       y = "Flow (cfs)") +
+  theme_minimal()
+
+poudre_plot
+
+ggplotly(poudre_plot)
+```
+
+## 3. Subseries
+```{r}
+
+gg_subseries(poudre_tsbl) +
+  labs(title = "Monthly Cache la Poudre River Flow Patterns", 
+       y = "Flow (cfs)", 
+       x = "Year") + 
+  theme_minimal()
+```
+
+### Describe what you see in the plot. How are “seasons” defined in this plot? What do you think the “subseries” represent? 
+#### Looking at the subseries plot of the Cache la Poudre River, I am able to see a natural rhythm where the river flow has significant peaks in May and June, reaching just above 2000 cfs, before it gradually declines throughout the summer and remains low during winter months. In this plot, "seasons" are defined as calendar months (January through December), with each panel showing how that particular month's flow patterns changed across the decade of data. The subseries represent the river's behavior during each specific month across multiple years (2013-2023), which reveals both the river's consistent seasonal pattern and the year-to-year variations within each month, particularly during the high-flow periods when snowmelt dominates the river's character.
+
+## 4. Decompose
+```{r}
+poudre_dcmp <- poudre_tsbl |>
+  model(stl = STL(Flow ~ trend(window = 21) + season(window = 13)))
+
+components(poudre_dcmp) |>
+  autoplot() +
+  labs(title = "STL Decomposition of Cache la Poudre River Flow")
+```
+### Describe what you see in the plot. How do the components change over time? What do you think the trend and seasonal components represent?
+#### The STL decomposition shows how the pattern of flow of the Cache la Poudre River combines multi-decade climate trends with frequent seasonal cycles. The trend part shows a distinctive arc - rising steeply from 2013 to peak at 2015-2016 and then dropping before beginning to rise again in more recent years, probably capturing longer-term cycles of wetness and dryness in the watershed. The annual seasonal trend then resumes the cyclic annual snowmelt pattern, and the remaining part highlights unusual events like sudden storms or water management measures that caused the river to behave in manners that its typical patterns could not have expected.
